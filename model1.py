@@ -3,23 +3,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
 from tensorflow.keras import layers
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.data import AUTOTUNE
 import kagglehub
 
-
+# Define paths for train, validation, and test sets
 data_train_path = 'skin-lesions/train'
 data_valid_path = 'skin-lesions/valid'
 data_test_path = 'skin-lesions/test'
 
+# Check if directories exist
 for path in [data_train_path, data_valid_path, data_test_path]:
     if not os.path.exists(path):
         print(f"Directory not found: {path}")
-        
+
 # Define image size and batch size
 image_size = (180, 180)
 batch_size = 32
-
 
 # Data Augmentation layers
 data_augmentation = keras.Sequential(
@@ -28,7 +27,8 @@ data_augmentation = keras.Sequential(
         layers.RandomRotation(0.1),
     ]
 )
-# Load the datasets
+
+# Load the datasets without validation split
 train_ds = keras.utils.image_dataset_from_directory(
     data_train_path,
     image_size=image_size,
@@ -96,7 +96,7 @@ model.compile(
 model.summary()
 
 # Train the model
-epochs = 1
+epochs = 10
 history = model.fit(
     train_ds,
     validation_data=val_ds,
