@@ -24,7 +24,12 @@ batch_size = 32
 data_augmentation = keras.Sequential(
     [
         layers.RandomFlip("horizontal"),
-        layers.RandomRotation(0.1),
+        layers.RandomRotation(0.2),
+        layers.RandomZoom(0.2),
+        layers.RandomWidth(0.2),
+        layers.RandomHeight(0.2),
+        layers.RandomBrightness(0.2),
+        layers.RandomContrast(0.2),
     ]
 )
 
@@ -47,15 +52,24 @@ val_ds = keras.utils.image_dataset_from_directory(
 train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
 
-# Visualize a few augmented images
+# Visualize a few augmented images side by side
 plt.figure(figsize=(10, 10))
 for images, labels in train_ds.take(1):
+    # Display the original images
+    for i in range(9):
+        ax = plt.subplot(3, 6, i + 1)  # 3 rows and 6 columns (for original and augmented)
+        plt.imshow(images[i].numpy().astype("uint8"))
+        plt.title(np.argmax(labels[i]))
+        plt.axis("off")
+    
+    # Apply data augmentation and display the augmented images
     augmented_images = data_augmentation(images)
     for i in range(9):
-        ax = plt.subplot(3, 3, i + 1)
+        ax = plt.subplot(3, 6, i + 10)  # Start second half for augmented images
         plt.imshow(augmented_images[i].numpy().astype("uint8"))
         plt.title(np.argmax(labels[i]))
         plt.axis("off")
+
 plt.show()
 
 # Define the model
