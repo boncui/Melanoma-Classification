@@ -1,0 +1,13 @@
+# Ignore the virtual environment folder
+env/
+
+# Ignore dataset files and directories
+skin lesions/
+*.jpeg
+*.jpg
+*.png
+*.csv
+*.zip
+
+# Ignore other common files that aren’t relevant to Git
+.DS_Store
