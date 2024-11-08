@@ -37,19 +37,19 @@ data_augmentation = keras.Sequential([
 ])
 ```
 
-Preprocessing and PreFetching - The training and validation datasets are loaded from directories using the image_dataset_from_directory function, which automatically labels the images based on their folder names. The data is set to be in categorical format (one-hot encoded), and prefetching is used to optimize performance.
+3. Preprocessing and PreFetching - The training and validation datasets are loaded from directories using the image_dataset_from_directory function, which automatically labels the images based on their folder names. The data is set to be in categorical format (one-hot encoded), and prefetching is used to optimize performance.
 
-Calculating Weight Classes - Class weights are calculated to handle class imbalance by adjusting the importance of each class during training. This is achieved by counting the instances in each class and calculating weights to give more importance to underrepresented classes.
+4. Calculating Weight Classes - Class weights are calculated to handle class imbalance by adjusting the importance of each class during training. This is achieved by counting the instances in each class and calculating weights to give more importance to underrepresented classes.
 
-Data Visualization Preprocessing Step - This section visualizes the effect of augmentation by displaying original and augmented images side by side.
+5. Data Visualization Preprocessing Step - This section visualizes the effect of augmentation by displaying original and augmented images side by side.
 
-Defining the Model - The model is created using a pre-trained ResNet50 as the base, allowing it to leverage features learned from a large dataset (ImageNet). The data is normalized, and the ResNet50 model is loaded with include_top=False, meaning it excludes its original classification head so that the model can be adapted for this specific task. A global average pooling layer and a dropout layer (rate 0.3) help prevent overfitting. Finally, a dense layer with softmax activation is used for the classification output.
+6. Defining the Model - The model is created using a pre-trained ResNet50 as the base, allowing it to leverage features learned from a large dataset (ImageNet). The data is normalized, and the ResNet50 model is loaded with include_top=False, meaning it excludes its original classification head so that the model can be adapted for this specific task. A global average pooling layer and a dropout layer (rate 0.3) help prevent overfitting. Finally, a dense layer with softmax activation is used for the classification output.
 
-Model Compiling - The model is compiled with the Adam optimizer (learning rate of 0.0001) and categorical cross-entropy loss, appropriate for multi-class classification.
+7. Model Compiling - The model is compiled with the Adam optimizer (learning rate of 0.0001) and categorical cross-entropy loss, appropriate for multi-class classification.
 
-Model Training - The model is trained for up to 50 epochs, with early stopping based on validation loss to avoid overfitting. The patience parameter is set to 12, meaning the training will stop if the validation loss does not improve for 12 consecutive epochs. Class weights are applied to handle class imbalance.
+8. Model Training - The model is trained for up to 50 epochs, with early stopping based on validation loss to avoid overfitting. The patience parameter is set to 12, meaning the training will stop if the validation loss does not improve for 12 consecutive epochs. Class weights are applied to handle class imbalance.
 
-Model Testing - The test dataset is loaded, preprocessed, and evaluated to obtain the model’s performance on unseen data, providing metrics like test loss and accuracy.
+9. Model Testing - The test dataset is loaded, preprocessed, and evaluated to obtain the model’s performance on unseen data, providing metrics like test loss and accuracy.
 
 ## Results
 
@@ -57,6 +57,8 @@ Our final model was based on a ResNet50 architecture with the following settings
 
 Optimizer: Adam
 Data Augmentation:
+
+```python
 layers.RandomFlip("horizontal")
 layers.RandomRotation(0.2)
 layers.RandomZoom(0.2)
@@ -64,29 +66,32 @@ layers.RandomWidth(0.2)
 layers.RandomHeight(0.2)
 layers.RandomBrightness(0.2)
 layers.RandomContrast(0.2)
-Network Architecture:
-Rescaling Layer: Normalizes pixel values to a [0, 1] range.
-Pre-trained Base Model: ResNet50 with ImageNet weights (top layer excluded). Set to be trainable.
-Global Average Pooling: Summarizes features spatially.
-Dropout Layer: Drops 30% of the neurons at that layer to prevent overfitting.
-Output Layer: Dense layer with softmax activation for classification into 3 classes.
-Training Details:
-Epochs: 50
-Early Stopping: Patience of 12 epochs, monitoring val_loss, with restore_best_weights=True.
-Class Weighting: Used to counter class imbalance.
-Final Results
-Test Accuracy: 0.71
-Early Stopping: Did not activate; all 50 epochs ran
-Best Epoch: Epoch 47
-Training Accuracy: 0.9543
-Validation Accuracy: 0.7533
-Validation Loss: 0.8276 at Epoch 40 (minimum)
-Potential Improvements
-Adjust early stopping to monitor val_accuracy instead of val_loss with a higher patience (e.g., 20 epochs) to better optimize validation accuracy.
-Increase the number of epochs by 10-30.
-vbnet
-Copy code
-
 ```
 
-```
+### Network Architecture
+
+- **Rescaling Layer**: Normalizes pixel values to a [0, 1] range.
+- **Pre-trained Base Model**: ResNet50 with ImageNet weights (top layer excluded), set to be trainable.
+- **Global Average Pooling**: Summarizes features spatially.
+- **Dropout Layer**: Drops 30% of the neurons at that layer to prevent overfitting.
+- **Output Layer**: Dense layer with softmax activation for classification into 3 classes.
+
+### Training Details
+
+- **Epochs**: 50
+- **Early Stopping**: Patience of 12 epochs, monitoring `val_loss`, with `restore_best_weights=True`.
+- **Class Weighting**: Used to counter class imbalance.
+
+### Final Results
+
+- **Test Accuracy**: 0.71
+- **Early Stopping**: Did not activate; all 50 epochs ran
+- **Best Epoch**: Epoch 47
+- **Training Accuracy**: 0.9543
+- **Validation Accuracy**: 0.7533
+- **Validation Loss**: 0.8276 at Epoch 40 (minimum)
+
+### Potential Improvements
+
+- Adjust early stopping to monitor `val_accuracy` instead of `val_loss` with a higher patience (e.g., 20 epochs) to better optimize validation accuracy.
+- Increase the number of epochs by 10-30.
