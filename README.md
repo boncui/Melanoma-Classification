@@ -8,7 +8,7 @@ We came together to work on a project for graduate school and for our portfolios
 
 ## Dataset Introduction
 
-**Link:** [Kaggle Dataset](https://www.kaggle.com/datasets/wanderdust/skin-lesion-analysis-toward-melanoma-detection/data)
+**Link:** [Melanoma Dataset from Kaggle](https://www.kaggle.com/datasets/wanderdust/skin-lesion-analysis-toward-melanoma-detection/data)
 
 > "The goal is to support research and development of algorithms for automated diagnosis of melanoma, the most lethal skin cancer" (Noel C.F. Codella et al 2017).
 
