@@ -55,7 +55,8 @@ data_augmentation = keras.Sequential([
 
 Our final model was based on a ResNet50 architecture with the following settings and hyperparameters:
 
-Optimizer: Adam
+# Optimizer: Adam
+
 Data Augmentation:
 
 ```python
