@@ -6,7 +6,7 @@ from tensorflow.keras import layers
 from tensorflow.data import AUTOTUNE
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.callbacks import EarlyStopping
-import kagglehub
+# import kagglehub
 
 data_train_path = 'skin-lesions/train'
 data_valid_path = 'skin-lesions/valid'
