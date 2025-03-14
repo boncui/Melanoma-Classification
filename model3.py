@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.applications import ResNet50
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.data import AUTOTUNE
 
 # Paths
@@ -52,7 +52,7 @@ total_images = np.sum(class_counts)
 class_weights = {i: total_images / (count + 1e-6) for i, count in enumerate(class_counts)}
 
 # Model Definition with Regularization
-def make_model(input_shape, num_classes):
+def make_model(input_shape, num_classes, trainable=False):
     inputs = keras.Input(shape=input_shape)
     
     x = data_augmentation(inputs)
@@ -60,7 +60,7 @@ def make_model(input_shape, num_classes):
 
     # Load ResNet50
     base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(180, 180, 3))
-    base_model.trainable = False  # 🔥 Initially freeze ResNet50 for stable feature extraction
+    base_model.trainable = trainable  # 🔥 Set trainable parameter dynamically
     x = base_model(x, training=False)
 
     # 🔥 Add Batch Normalization
@@ -75,7 +75,8 @@ def make_model(input_shape, num_classes):
 
     outputs = layers.Dense(num_classes, activation="softmax")(x)
 
-    return keras.Model(inputs, outputs)
+    model = keras.Model(inputs, outputs)
+    return model, base_model  # 🔥 Return both the model and the base_model
 
 # Set input shape and number of classes
 input_shape = image_size + (3,)
@@ -86,21 +87,23 @@ lr_schedule = tf.keras.optimizers.schedules.CosineDecay(
     initial_learning_rate=1e-3, decay_steps=1000, alpha=0.1
 )
 
-# Compile model
-model = make_model(input_shape=input_shape, num_classes=num_classes)
-optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
+# Compile model (with frozen ResNet)
+model, base_model = make_model(input_shape=input_shape, num_classes=num_classes, trainable=False)
+optimizer = keras.optimizers.Adam()
 model.compile(
     optimizer=optimizer,
     loss='categorical_crossentropy',
     metrics=['accuracy']
 )
 
+# 🚀 Manually assign CosineDecay learning rate
+model.optimizer.learning_rate = lr_schedule
+
 model.summary()
 
-# Callbacks: EarlyStopping + ReduceLROnPlateau
+# Callbacks: EarlyStopping (NO ReduceLROnPlateau since CosineDecay is used)
 callbacks = [
-    EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
-    ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-6)  # 🚀 Dynamically adjust LR
+    EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 ]
 
 # 🚀 Train top layers first (ResNet frozen)
@@ -109,8 +112,10 @@ history = model.fit(
 )
 
 # 🔥 Unfreeze ResNet50 for Fine-Tuning
-base_model.trainable = True
+base_model.trainable = True  # ✅ Now it is accessible here
 fine_tune_epochs = 20
+
+# Recompile the model for fine-tuning
 model.compile(
     optimizer=keras.optimizers.Adam(learning_rate=1e-5),  # Lower LR for fine-tuning
     loss='categorical_crossentropy',
