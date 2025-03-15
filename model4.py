@@ -83,11 +83,19 @@ def make_model(input_shape, num_classes, trainable=False):
 input_shape = image_size + (3,)
 num_classes = 3
 
-# 🔥 Cosine Annealing Scheduler (instead of simple decay)
+#correcy learning rate
 lr_schedule = tf.keras.optimizers.schedules.CosineDecay(
     initial_learning_rate=1e-3, decay_steps=1000, alpha=0.1
 )
-optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
+
+# Instantiate optimizer (fix: convert lr_schedule to float initially)
+optimizer = keras.optimizers.Adam(learning_rate=1e-3)
+
+"""ALTERNATIVE"""
+# optimizer = keras.optimizers.Adam(learning_rate=tf.keras.optimizers.schedules.CosineDecay(
+#     initial_learning_rate=1e-3, decay_steps=1000, alpha=0.1
+# ))
+
 
 # Compile model (with frozen ResNet)
 model, base_model = make_model(input_shape=input_shape, num_classes=num_classes, trainable=False)
@@ -111,9 +119,9 @@ history = model.fit(
 )
 
 # 🔥 Gradual Unfreezing of ResNet50 for Fine-Tuning
-for layer in base_model.layers[-25:]:  # Only unfreeze last 25 layers
+for layer in base_model.layers[-30:]:  # Only unfreeze last 25 layers
     layer.trainable = True
-fine_tune_epochs = 25
+fine_tune_epochs = 30
 
 # Recompile the model for fine-tuning
 model.compile(
