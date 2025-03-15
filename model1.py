@@ -53,7 +53,8 @@ val_ds = keras.utils.image_dataset_from_directory(
 train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
 
-class_counts = np.zeros(3)      # The number of classes - melanoma, nevus, seborrheic keratosis
+# The number of classes - melanoma, nevus, seborrheic keratosis
+class_counts = np.zeros(3)      
 
 for images, labels in train_ds:
     class_counts += np.sum(labels.numpy(), axis=0)          # Sum the number of images in each class
@@ -110,24 +111,6 @@ def make_model(input_shape, num_classes):
     outputs = layers.Dense(num_classes, activation="softmax")(x)
 
     return keras.Model(inputs, outputs)
-    
-    # # Simpler Convolutional base (Lower complexity)
-    # x = layers.Conv2D(32, 3, padding="same", activation="relu")(x)
-    # x = layers.MaxPooling2D()(x)
-    # x = layers.Conv2D(64, 3, padding="same", activation="relu")(x)
-    # x = layers.MaxPooling2D()(x)
-    # x = layers.Conv2D(128, 3, padding="same", activation="relu")(x)
-    # x = layers.MaxPooling2D()(x)
-
-    # # Global Average Pooling
-    # x = layers.GlobalAveragePooling2D()(x)
-
-    # # To prevent overfitting
-    # x = layers.Dropout(0.3)(x)  # Lower dropout rate
-
-    # # Classification layer
-    # outputs = layers.Dense(num_classes, activation="softmax")(x)
-    # return keras.Model(inputs, outputs)
 
 # Setting input shape and number of classes
 input_shape = image_size + (3,)
