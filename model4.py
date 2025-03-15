@@ -25,23 +25,23 @@ batch_size = 32
 # 🔥 Enhanced Data Augmentation
 data_augmentation = keras.Sequential([
     layers.RandomFlip("horizontal"),
-    layers.RandomRotation(0.4),
-    layers.RandomZoom(0.3),
-    layers.RandomWidth(0.3),
-    layers.RandomHeight(0.3),
-    layers.RandomBrightness(0.3),
-    layers.RandomContrast(0.4),
+    layers.RandomRotation(0.2),
+    layers.RandomZoom(0.2),
+    layers.RandomWidth(0.2),
+    layers.RandomHeight(0.2),
+    layers.RandomBrightness(0.2),
+    layers.RandomContrast(0.2),
     layers.GaussianNoise(0.1),  # 🚀 Adds Gaussian noise for robustness
 ])
 
 # Load datasets efficiently
 train_ds = keras.utils.image_dataset_from_directory(
     data_train_path, image_size=image_size, batch_size=batch_size, label_mode='categorical'
-).prefetch(buffer_size=AUTOTUNE)
+)
 
 val_ds = keras.utils.image_dataset_from_directory(
     data_valid_path, image_size=image_size, batch_size=batch_size, label_mode='categorical'
-).prefetch(buffer_size=AUTOTUNE)
+)
 
 # Compute class weights for imbalance handling
 class_counts = np.zeros(3)
@@ -87,36 +87,33 @@ num_classes = 3
 lr_schedule = tf.keras.optimizers.schedules.CosineDecay(
     initial_learning_rate=1e-3, decay_steps=1000, alpha=0.1
 )
+optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
 
 # Compile model (with frozen ResNet)
 model, base_model = make_model(input_shape=input_shape, num_classes=num_classes, trainable=False)
-optimizer = keras.optimizers.Adam()
 model.compile(
     optimizer=optimizer,
     loss='categorical_crossentropy',
     metrics=['accuracy']
 )
 
-# 🚀 Manually assign CosineDecay learning rate
-model.optimizer.learning_rate = lr_schedule
-
 model.summary()
 
 # Callbacks: EarlyStopping + ReduceLROnPlateau
 callbacks = [
-    EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
+    EarlyStopping(monitor='val_loss', patience=12, restore_best_weights=True),
     ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-6)  # 🚀 Adjust LR dynamically
 ]
 
 # 🚀 Train top layers first (ResNet frozen)
 history = model.fit(
-    train_ds, validation_data=val_ds, epochs=30, callbacks=callbacks, class_weight=class_weights
+    train_ds, validation_data=val_ds, epochs=25, callbacks=callbacks, class_weight=class_weights
 )
 
 # 🔥 Gradual Unfreezing of ResNet50 for Fine-Tuning
-for layer in base_model.layers[-20:]:  # Only unfreeze last 20 layers
+for layer in base_model.layers[-25:]:  # Only unfreeze last 25 layers
     layer.trainable = True
-fine_tune_epochs = 20
+fine_tune_epochs = 25
 
 # Recompile the model for fine-tuning
 model.compile(

@@ -91,8 +91,6 @@ def make_model(input_shape, num_classes):
     inputs = keras.Input(shape=input_shape)
 
     x = data_augmentation(inputs)
-
-    # Pixel value normalization
     x = layers.Rescaling(1.0 / 255)(x)
 
     # ResNet50 base
