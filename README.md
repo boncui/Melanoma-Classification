@@ -1,5 +1,8 @@
 # Melanoma-Classification
 
+![melanoma](https://github.com/user-attachments/assets/f9923f4e-894f-4294-a0ab-fc118ddfbea5)
+
+
 **Collaborators:** Israel Chavez, David Cui
 
 ## Goal
