@@ -68,26 +68,29 @@ class_weights = {i: total_images / count for i, count in enumerate(class_counts)
 
 print(f"Class weights: {class_weights}")        # The class weights are used to balance the dataset (to counteract the class imbalance)
 
-# Visualizing a few augmented images side by side
-plt.figure(figsize=(10, 10))
-for images, labels in train_ds.take(1):
-    for i in range(9):
-        ax = plt.subplot(3, 6, i + 1)  
-        plt.imshow(images[i].numpy().astype("uint8"))
-        plt.title(np.argmax(labels[i]))
-        plt.axis("off")
+# #---------------------
+# """Visualizing a few augmented images side by side"""
+# #---------------------
+# plt.figure(figsize=(10, 10))
+# for images, labels in train_ds.take(1):
+#     for i in range(9):
+#         ax = plt.subplot(3, 6, i + 1)  
+#         plt.imshow(images[i].numpy().astype("uint8"))
+#         plt.title(np.argmax(labels[i]))
+#         plt.axis("off")
     
-    # Appling data augmentation and displaying the augmented images
-    augmented_images = data_augmentation(images)
-    for i in range(9):
-        ax = plt.subplot(3, 6, i + 10)  # Start second half for augmented images
-        plt.imshow(augmented_images[i].numpy().astype("uint8"))
-        plt.title(np.argmax(labels[i]))
-        plt.axis("off")
+#     # Appling data augmentation and displaying the augmented images
+#     augmented_images = data_augmentation(images)
+#     for i in range(9):
+#         ax = plt.subplot(3, 6, i + 10)  # Start second half for augmented images
+#         plt.imshow(augmented_images[i].numpy().astype("uint8"))
+#         plt.title(np.argmax(labels[i]))
+#         plt.axis("off")
 
-plt.show()
+# plt.show()
 
-# Defining the model
+# Model Selection
+    #Restnet50
 def make_model(input_shape, num_classes):
     inputs = keras.Input(shape=input_shape)
 
@@ -96,15 +99,16 @@ def make_model(input_shape, num_classes):
 
     # ResNet50 base
     base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(180, 180, 3))
-    base_model.trainable = True # Allows fine-tuning of the ResNet50 model
-    x = base_model(x, training=False) # Ensure the base model is in inference mode for stable training
+    base_model.trainable = False #Start w frozen resnet
+    
+    x = base_model(x, training=False)
+    x = layers.GlobalAveragePooling2D()(x)
+    
+    #apply stronger regularization
+    x = layers.BatchNormalization()(x)  # Normalize activations
+    x = layers.Dense(256, activation="relu", kernel_regularizer=keras.regularizers.l2(0.02))(x)  # L2 Regularization
+    x = layers.Dropout(0.4)(x)
 
-    # Global Average Pooling
-    x = layers.GlobalAveragePooling2D()(x) 
-    # Reduces the dimensions of the feature map to 2
-
-    # Drops 0.3 of the neurons to prevent overfitting
-    x = layers.Dropout(0.3)(x)
 
     # Classification layer
     outputs = layers.Dense(num_classes, activation="softmax")(x)
@@ -127,7 +131,7 @@ model.compile(
 model.summary()
 
 # Training the model
-epochs = 50
+epochs = 35
 early_stopping = EarlyStopping(monitor='val_loss', patience=12, restore_best_weights=True)
 history = model.fit(
     train_ds,
@@ -150,12 +154,11 @@ test_loss, test_accuracy = model.evaluate(test_ds)
 print(f"Test accuracy: {test_accuracy:.2f}")
 
 # ✅ Save the trained model
-model.save("melanoma_classifier.h5")  # HDF5 format
-# model.save("melanoma_classifier")  # TensorFlow format
+model.save("melanoma_classifier.keras")  # TensorFlow format
 
 # ✅ Verify the saved model
 print("\n✅ Verifying saved model...")
-loaded_model = tf.keras.models.load_model("melanoma_classifier.h5")
+loaded_model = tf.keras.models.load_model("melanoma_classifier.keras")
 loaded_model.summary()
 print("✅ Model successfully saved and reloaded!")
 
