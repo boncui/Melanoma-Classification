@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
+import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.data import AUTOTUNE
 from tensorflow.keras.applications import ResNet50
@@ -148,6 +149,16 @@ test_ds = test_ds.prefetch(buffer_size=AUTOTUNE)
 test_loss, test_accuracy = model.evaluate(test_ds)
 print(f"Test accuracy: {test_accuracy:.2f}")
 
+# ✅ Save the trained model
+model.save("melanoma_classifier.h5")  # HDF5 format
+# model.save("melanoma_classifier")  # TensorFlow format
+
+# ✅ Verify the saved model
+print("\n✅ Verifying saved model...")
+loaded_model = tf.keras.models.load_model("melanoma_classifier.h5")
+loaded_model.summary()
+print("✅ Model successfully saved and reloaded!")
+
 # Plotting training and validation accuracy
 plt.figure(figsize=(8, 6))
 plt.plot(history.history['accuracy'], label='Training Accuracy')
@@ -156,3 +167,5 @@ plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.legend()
 plt.show()
+
+
