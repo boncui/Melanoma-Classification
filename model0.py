@@ -104,7 +104,7 @@ def make_model(input_shape, num_classes):
     # Reduces the dimensions of the feature map to 2
 
     # Drops 0.3 of the neurons to prevent overfitting
-    x = layers.Dropout(0.4)(x)
+    x = layers.Dropout(0.3)(x)
 
     # Classification layer
     outputs = layers.Dense(num_classes, activation="softmax")(x)
@@ -145,7 +145,7 @@ model.compile(
 model.summary()
 
 # Training the model
-epochs = 35
+epochs = 50
 early_stopping = EarlyStopping(monitor='val_loss', patience=12, restore_best_weights=True)
 history = model.fit(
     train_ds,
