@@ -18,7 +18,7 @@ for path in [data_train_path, data_valid_path, data_test_path]:
         print(f"Directory not found: {path}")
 
 # Defining image size and batch size
-image_size = (180, 180)
+image_size = (224, 224)
 batch_size = 32
 
 # Image Augmentation
@@ -95,7 +95,7 @@ def make_model(input_shape, num_classes):
     x = layers.Rescaling(1.0 / 255)(x)
 
     # ResNet50 base
-    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(180, 180, 3))
+    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
     base_model.trainable = True # Allows fine-tuning of the ResNet50 model
     x = base_model(x, training=False) # Ensure the base model is in inference mode for stable training
 
@@ -104,7 +104,7 @@ def make_model(input_shape, num_classes):
     # Reduces the dimensions of the feature map to 2
 
     # Drops 0.3 of the neurons to prevent overfitting
-    x = layers.Dropout(0.3)(x)
+    x = layers.Dropout(0.4)(x)
 
     # Classification layer
     outputs = layers.Dense(num_classes, activation="softmax")(x)
@@ -145,7 +145,7 @@ model.compile(
 model.summary()
 
 # Training the model
-epochs = 50
+epochs = 35
 early_stopping = EarlyStopping(monitor='val_loss', patience=12, restore_best_weights=True)
 history = model.fit(
     train_ds,
