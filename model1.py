@@ -19,7 +19,7 @@ for path in [data_train_path, data_valid_path, data_test_path]:
         print(f"Directory not found: {path}")
 
 # Defining image size and batch size
-image_size = (180, 180)
+image_size = (224, 224)
 batch_size = 32
 
 # Image Augmentation
@@ -49,45 +49,27 @@ val_ds = keras.utils.image_dataset_from_directory(
     batch_size=batch_size,
     label_mode='categorical'
 )
+test_ds = keras.utils.image_dataset_from_directory(
+    data_test_path,
+    image_size=image_size,
+    batch_size=batch_size,
+    label_mode='categorical'
+)
+
 
 # Preteching images to improve performance
 train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
+test_ds = test_ds.prefetch(buffer_size=AUTOTUNE)
 
 # The number of classes - melanoma, nevus, seborrheic keratosis
-class_counts = np.zeros(3)      
-
+class_counts = np.zeros(3)
 for images, labels in train_ds:
-    class_counts += np.sum(labels.numpy(), axis=0)          # Sum the number of images in each class
-
-for i, count in enumerate(class_counts):
-    print(f"Class {i} count: {count}")
-
+    class_counts += np.sum(labels.numpy(), axis=0)
 total_images = np.sum(class_counts)
-class_weights = {i: total_images / count for i, count in enumerate(class_counts)}
+class_weights = {i: total_images / (count + 1e-6) for i, count in enumerate(class_counts)}
 
 print(f"Class weights: {class_weights}")        # The class weights are used to balance the dataset (to counteract the class imbalance)
-
-# #---------------------
-# """Visualizing a few augmented images side by side"""
-# #---------------------
-# plt.figure(figsize=(10, 10))
-# for images, labels in train_ds.take(1):
-#     for i in range(9):
-#         ax = plt.subplot(3, 6, i + 1)  
-#         plt.imshow(images[i].numpy().astype("uint8"))
-#         plt.title(np.argmax(labels[i]))
-#         plt.axis("off")
-    
-#     # Appling data augmentation and displaying the augmented images
-#     augmented_images = data_augmentation(images)
-#     for i in range(9):
-#         ax = plt.subplot(3, 6, i + 10)  # Start second half for augmented images
-#         plt.imshow(augmented_images[i].numpy().astype("uint8"))
-#         plt.title(np.argmax(labels[i]))
-#         plt.axis("off")
-
-# plt.show()
 
 # Model Selection
     #Restnet50
@@ -98,60 +80,70 @@ def make_model(input_shape, num_classes):
     x = layers.Rescaling(1.0 / 255)(x)
 
     # ResNet50 base
-    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(180, 180, 3))
+    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
     base_model.trainable = False #Start w frozen resnet
-    
+     
+     
     x = base_model(x, training=False)
     x = layers.GlobalAveragePooling2D()(x)
     
     #apply stronger regularization
     x = layers.BatchNormalization()(x)  # Normalize activations
-    x = layers.Dense(256, activation="relu", kernel_regularizer=keras.regularizers.l2(0.02))(x)  # L2 Regularization
-    x = layers.Dropout(0.4)(x)
+    x = layers.Dense(256, activation="relu", kernel_regularizer=keras.regularizers.l2(0.001))(x)  # L2 Regularization
+    x = layers.Dropout(0.2)(x)
 
 
     # Classification layer
     outputs = layers.Dense(num_classes, activation="softmax")(x)
 
-    return keras.Model(inputs, outputs)
+    model = keras.Model(inputs, outputs)
+
+    return model, base_model
 
 # Setting input shape and number of classes
 input_shape = image_size + (3,)
-num_classes = 3  # melanoma, nevus, seborrheic keratosis
+num_classes = 3 
 
-# Initializing and compiling the model
-model = make_model(input_shape=input_shape, num_classes=num_classes)
-optimizer = keras.optimizers.Adam(learning_rate=0.0001)
-model.compile(
-    optimizer=optimizer,
-    loss='categorical_crossentropy',
-    metrics=['accuracy']
+model, base_model = make_model(input_shape=input_shape, num_classes=num_classes)
+
+# optimizer = keras.optimizers.Adam(learning_rate=0.0001)
+lr_schedule = tf.keras.optimizers.schedules.CosineDecay(
+    initial_learning_rate=0.0005, decay_steps=1000, alpha=0.1
+)
+optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
+model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Training the model
+early_stopping = EarlyStopping(monitor='val_loss', patience=12, restore_best_weights=True)
+
+history = model.fit(
+    train_ds, validation_data=val_ds, epochs=30, callbacks=[early_stopping], class_weight=class_weights
+)
+
+# Unfreeze the last few layers for fine-tuning
+base_model.trainable = True
+for layer in base_model.layers[:-10]:  # Fine-tune only last 10 layers
+    layer.trainable = False
+
+# Compile again with a lower learning rate for fine-tuning
+optimizer = keras.optimizers.Adam(learning_rate=1e-5) 
+model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Define a new Early Stopping Callback for Fine-Tuning
+early_stopping_fine = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+
+# 🏋️ Train Again with Fine-Tuning
+fine_tune_epochs = 15  # Fine-tune for 10-15 more epochs
+history_fine = model.fit(
+    train_ds, validation_data=val_ds, epochs=fine_tune_epochs, callbacks=[early_stopping], class_weight=class_weights
 )
 
 model.summary()
 
-# Training the model
-epochs = 35
-early_stopping = EarlyStopping(monitor='val_loss', patience=12, restore_best_weights=True)
-history = model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=epochs,
-    callbacks=[early_stopping],
-    class_weight=class_weights
-)
-
 # Evaluating the model on the test dataset
-test_ds = keras.utils.image_dataset_from_directory(
-    data_test_path,
-    image_size=image_size,
-    batch_size=batch_size,
-    label_mode='categorical'
-)
-test_ds = test_ds.prefetch(buffer_size=AUTOTUNE)
 
 test_loss, test_accuracy = model.evaluate(test_ds)
-print(f"Test accuracy: {test_accuracy:.2f}")
+print(f"🚀 Final Test Accuracy: {test_accuracy:.2f}")
 
 # ✅ Save the trained model
 model.save("melanoma_classifier.keras")  # TensorFlow format
